@@ -1,24 +1,22 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Windows.Security.Credentials;
-
 using Microsoft.ReactNative.Managed;
-using Microsoft.ReactNative;
+using Newtonsoft.Json.Linq;
+using Windows.Security.Credentials;
 
 namespace RNSensitiveInfo
 {
-    [ReactModule("RNSensitiveInfo")]
-    class RNSensitiveInfoModule
+    [ReactModule]
+    public sealed class RNSensitiveInfoModule
     {
-        
+
         [ReactMethod]
-        public void getItem(string key, JSValue options, IReactPromise<string> promise)
+        public async void getItem(string key, JObject options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
-                promise.Reject(new ReactError { Exception = new ArgumentNullException("KEY IS REQUIRED") });
-                return;
+                promise.Reject(new ReactError { Message = "KEY IS REQURIED" });
             }
 
             try
@@ -42,11 +40,11 @@ namespace RNSensitiveInfo
         }
 
         [ReactMethod]
-        public void setItem(string key, string value, JSValue options, IReactPromise<string> promise)
+        public async void setItem(string key, string value, JObject options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
-                promise.Reject(new ReactError { Exception = new ArgumentNullException("KEY IS REQUIRED") });
+                promise.Reject(new ReactError { Message = "KEY IS REQURIED" });
                 return;
             }
 
@@ -64,11 +62,11 @@ namespace RNSensitiveInfo
         }
 
         [ReactMethod]
-        public void deleteItem(string key, JSValue options, IReactPromise<string> promise)
+        public async void deleteItem(string key, JObject options, IReactPromise<string> promise)
         {
             if (string.IsNullOrEmpty(key))
             {
-                promise.Reject(new ReactError { Exception = new ArgumentNullException("KEY IS REQUIRED") });
+                promise.Reject(new ReactError { Message = "KEY IS REQURIED" });
                 return;
             }
 
@@ -88,12 +86,12 @@ namespace RNSensitiveInfo
         }
 
         [ReactMethod]
-        public void getAllItems(JSValue options, IReactPromise<JSValue> promise)
+        public async void getAllItems(JObject options, IReactPromise<string> promise)
         {
             try
             {
                 string name = sharedPreferences(options);
-                JSValueObject ret = new JSValueObject();
+                Dictionary<string, string> result = new Dictionary<string, string>();
 
                 var vault = new PasswordVault();
                 var credentialList = vault.FindAllByResource(name);
@@ -102,11 +100,13 @@ namespace RNSensitiveInfo
                     credentialList.ToList().ForEach(item =>
                     {
                         var credential = prefs(name, item.UserName);
-                        ret[item.UserName] = credential.Password;
+                        result[item.UserName] = credential.Password;
                     });
-
+                    
                 }
-                promise.Resolve(ret);
+
+                JObject json = JObject.FromObject(result);
+                promise.Resolve("test");
             }
             catch (Exception ex)
             {
@@ -133,21 +133,18 @@ namespace RNSensitiveInfo
             {
                 throw new Exception("ERROR SAVE PasswordVault " + e.Message);
             }
-
+            
         }
 
-        private string sharedPreferences(JSValue options)
+
+        private string sharedPreferences(JObject options)
         {
-            JSValue val;
-            var opt = options.AsObject();
-            if (opt.TryGetValue("sharedPreferencesName", out val))
+            string name = options.Value<string>("sharedPreferencesName") ?? "shared_preferences";
+            if (name == null)
             {
-                return val.AsString();
+                name = "shared_preferences";
             }
-            else
-            {
-                return "shared_preferences";
-            }
+            return name;
         }
 
     }
